@@ -14,7 +14,7 @@ class ItemPaging:
             self.pageNumber = '<d5p1:pageNumber>' + self.pageNumber + '</d5p1:pageNumber>'
             self.totalItems = '<d5p1:totalItems>' + self.totalItems + '</d5p1:totalItems>'
             self.totalPages = '<d5p1:totalPages>' + self.totalPages + '</d5p1:totalPages>'
-            req = req + self.itemsOnPage + self.pageNumber + self.totalItems + self.totalPages
+            req = req + self.itemsOnPage + self.pageNumber + self.totalItems + self.totalPages + '</d4p1:paging>'
         return req
     
      

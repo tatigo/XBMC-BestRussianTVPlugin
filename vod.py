@@ -53,7 +53,7 @@ class GetVODAddedLastWeekByUser:
             self.icon = attrs['Image']
     def end_element(self, name):
         if name == 'Series':
-            print self.name
+            
             self.programs.append((self.name, self.id, self.description, self.icon))
             self.id = None
             self.name = None

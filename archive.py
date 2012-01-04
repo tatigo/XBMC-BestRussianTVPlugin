@@ -98,7 +98,7 @@ class GetPVREPG:
         .replace('{Channel}', Channel).replace('{Date}', Date)				
 
     def Request(self):
-        conn = httplib.HTTPConnection('iptv-distribution.net')
+        conn = httplib.HTTPConnection('iptv-distribution.net', 80)
         conn.request('POST', config1.epgService, self.req, {
             'Host' : 'iptv-distribution.net',                                                
             'SOAPAction': 'http://iptv-distribution.net/ds/epg/GetPVREPG',
@@ -106,7 +106,7 @@ class GetPVREPG:
         })
         response = conn.getresponse()
         data = response.read()
-        print data
+        
 
         p = xml.parsers.expat.ParserCreate()
 
@@ -156,8 +156,9 @@ class GetArchStream:
         .replace('{Username}', Username).replace('{Password}', Password).replace('{Program}', Program)
 
     def Request(self):
-        conn = httplib.HTTPConnection('iptv-distribution.net')
+        conn = httplib.HTTPConnection('iptv-distribution.net', 80)
         conn.request('POST', config1.vodService, self.req, {
+            'Host': 'iptv-distribution.net',
             'SOAPAction': 'http://www.iptv-distribution.com/ucas/GetPVRStreamURL',
             'Content-Type': 'text/xml; charset=utf-8'
         })
@@ -212,7 +213,7 @@ class GetPvrPlaylist:
         })
         response = conn.getresponse()
         data = response.read()
-        print data
+        
 
         p = xml.parsers.expat.ParserCreate()
 

@@ -176,12 +176,14 @@ class ContentSort:
 class Channels:
     items = []
     filter = (object)
-    paging = (object)
+    TPage = ''
+    
     sort = (object)
     type = ''
     def Invoke(self,str):
         soup = BeautifulSoup(str)
         try:
+            self.TPage = soup('b:totalpages')[0].text
             chn = soup('a:channel')
             for i in chn:
                 sup = BeautifulSoup(i.prettify())

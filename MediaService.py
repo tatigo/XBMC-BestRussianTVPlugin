@@ -94,6 +94,57 @@ def GetClientStreamUri(sessionID, cType, Id ):
     return StreamUrl
 
 
+
+def GetArcStreamUri(sessionID, Id ):
+    quality = ['HQ', 'SQ']
+    q = int(addon.getSetting('quality'))
+    region = ['EU_RST', 'NA_PST', 'NA_EST','AU_EST']
+    r = int(addon.getSetting('region'))
+    server = ['1','7']
+    s = int(addon.getSetting('server'))
+    
+    req = '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">' \
+          '<s:Body>' \
+          '<GetClientStreamUri xmlns="http://ivsmedia.iptv-distribution.net">' \
+          '<sessionID>' + sessionID + '</sessionID>' \
+          '<mediaRequest xmlns:d4p1="http://schemas.datacontract.org/2004/07/IVS.Content.Media" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">' \
+          '<d4p1:clientSidePlaylist>true</d4p1:clientSidePlaylist>' \
+          '<d4p1:item xmlns:d5p1="http://schemas.datacontract.org/2004/07/IVS.Content.Data">' \
+          '<d5p1:contentType>DVR</d5p1:contentType>' \
+          '<d5p1:id>' + Id + '</d5p1:id>' \
+          '</d4p1:item>' \
+          '<d4p1:mediaFormat i:nil="true" />' \
+          '<d4p1:startOffset>0</d4p1:startOffset>' \
+          '<d4p1:streamSettings xmlns:d5p1="http://schemas.datacontract.org/2004/07/IVS.Common.Server">' \
+          '<d5p1:balancingArea>' \
+          '<d5p1:id>13</d5p1:id>' \
+          '<d5p1:name i:nil="true" />' \
+          '</d5p1:balancingArea>' \
+          '<d5p1:cdn>' \
+          '<d5p1:id>' + server[s] + '</d5p1:id>' \
+          '<d5p1:name i:nil="true" />' \
+          '</d5p1:cdn>' \
+          '<d5p1:qualityPreset>' + quality[q] + '</d5p1:qualityPreset>' \
+          '<d5p1:shiftTimeZoneName>' + region[r] + '</d5p1:shiftTimeZoneName>' \
+          '</d4p1:streamSettings>' \
+          '</mediaRequest>' \
+          '</GetClientStreamUri>' \
+          '</s:Body>' \
+          '</s:Envelope>'
+          
+    soup = BeautifulSoup(Request(req, 'GetClientStreamUri'))
+    
+    try:
+        StreamUrl = soup("a:playlist")[0].text
+        StreamUrl = StreamUrl.replace('&lt;', '<').replace('&gt;', '>')
+    except:
+        StreamUrl = ''
+    return StreamUrl
+
+
+
+
+
 def Request(str, action):
     conn = httplib.HTTPConnection(proxy, port)
     conn.request('POST', Config.MediaService, str, {

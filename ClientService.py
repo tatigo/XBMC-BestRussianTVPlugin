@@ -13,7 +13,7 @@ def Login(Username = '',Password = ''):
     x = Content.Application().ClientAppSettings
     x.clientCredential.UserLogin = Username
     x.clientCredential.UserPassword = Password
-    x.appSettings.appName ='SMC'
+    x.appSettings.appName ='XBMC'
     temp = req.replace('{BODY}', '<Login xmlns="http://ivsmedia.iptv-distribution.net">' + x.get() + '</Login>')
     soup = BeautifulSoup(Request(temp, 'Login'))
     try:

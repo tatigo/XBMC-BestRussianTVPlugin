@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-import sys, datetime, time, calendar
+import sys, datetime, time, calendar, thread, threading
 import xbmc, xbmcgui, xbmcplugin, urllib
 import ClientService, ContentService, MediaService, Content, GetBest, RusKeyboard, ArcSearch, VodSearch
 import archive, vod, asx, radio
-
+from BeautifulSoup import BeautifulSoup
 
 try:
     # new XBMC 10.05 addons:
@@ -56,6 +56,12 @@ def getImage(id, t):
     imageUrl = addon.getSetting('imageTemp')
     imageUrl = imageUrl.replace('{0}',id).replace('{1}',t).replace('&amp;n={2}','').replace('&amp;', '&')
     return imageUrl
+
+def loop(seconds):
+    while xbmc.Player().isPlaying()==False:
+            time.sleep(1)
+    xbmc.Player().seekTime(seconds)
+            
     
 def SessionID():
     if Username != "" and Password != "":
@@ -169,6 +175,7 @@ except: pass
 #except: pass
 
 
+
 daysofweek = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
 months = ["Январь","Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август" ,"Сентябрь" ,"Октябрь" ,"Ноябрь" ,"Декабрь"]
 monthday = ["Января","Февраля", "Марта", "Апреля", "Мая", "Июня", "Июля", "Августа" ,"Сентября" ,"Октября" ,"Ноября" ,"Декабря"]
@@ -176,10 +183,10 @@ monthday = ["Января","Февраля", "Марта", "Апреля", "Ма
 try:
  if mode == None or mode == "":
     list = ""
-    channels = Content.Channels()
-    channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'LiveTV'))
-    for channel in channels.items:
-        list = list + channel.name + ','
+    #channels = Content.Channels()
+    #channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'LiveTV'))
+    #for channel in channels.items:
+        #list = list + channel.name + ','
     addon.setSetting('chlist', list)    
     addon.setSetting('imageTemp', '')
     addItem('Прямой эфир', 'LiveTV', True, icon=os.path.join(iconpath, 'icon_tv_live.png'))
@@ -197,11 +204,22 @@ try:
     xbmc.executebuiltin('XBMC.Resolution(' + addon.getSetting('resolution') + ')')
 
  elif mode == 'LiveTV':
+    datnow = ContentService.GetUTC()
     channels = Content.Channels()
-    channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'LiveTV'))
+    sessID = SessionID()
+    channels.Invoke(ContentService.GetClientChannel(sessID, type = 'LiveTV', pagItems = '13', pagNum = page))
     for channel in channels.items:
+        playnow  = ContentService.NowPlay(sessID, channel.id, datnow)
         icon = getImage(channel.id, '4')
-        addItem(channel.name, 'LiveStream', False, channel.id, icon = icon)
+        name = channel.name + ' - ' + playnow.time + ' ' + playnow.name
+        
+        addItem(name, 'LiveStream', False, channel.id, playnow.description, icon)
+    if int(channels.TPage) > int(page):
+        p = int(page) + 1
+        print channels.TPage + ' - ' + page
+        addItem("...Следующая страница...","LiveTV",True, icon=os.path.join(iconpath, 'icon_tv_live.png'), page=str(p))
+    if int(channels.TPage) == int(page) or int(channels.TPage) > int(page):
+        addItem("На главную", "", True, "0")    
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
     
  elif mode == 'LiveStream':    
@@ -214,11 +232,11 @@ try:
         else:
             video = urllib.unquote(video)
             video = video.replace('&amp;','&')
-        #cat = description.replace('\n', ". ")
-        #cat = '"' + name + '"' + ". " + cat
+        cat = description.replace('\n', ". ")
+        cat = name  + ". " + cat
         icon = getImage(id, '4')
-        listitem = xbmcgui.ListItem(name, thumbnailImage=icon)
-        listitem.setInfo('video', {'title' : name})
+        listitem = xbmcgui.ListItem(cat, thumbnailImage=icon)
+        listitem.setInfo('video', {'title' : cat})
         playlist.add(url=video, listitem=listitem, index=7)
         xbmc.Player().play(playlist)
     
@@ -231,7 +249,7 @@ try:
     
  elif mode == 'ArcPlusCh':
     channels = Content.Channels()
-    channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'ArcPlus'))
+    channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'ArcPlus',  pagItems = '200', pagNum = '1'))
     for channel in channels.items:
         icon = getImage(channel.id, '4')
         addItem(channel.name, 'ArcTimes', True, channel.id, icon = icon)
@@ -387,17 +405,20 @@ try:
     
 
  elif mode == "archive":
-  chlist = addon.getSetting('chlist')
-  d = chlist.split(',')
-    
+  #chlist = addon.getSetting('chlist')
+  #d = chlist.split(',')
+  channels = Content.Channels()
+  channels.Invoke(ContentService.GetClientChannel(SessionID(), type = 'LiveTV', pagItems = '200', pagNum = '1'))
+  
   lc = archive.GetChannels(Username, Password)
   lcr = lc.Request()
+  for d in channels.items:
   #for i in range(0,len(d)-2):  
-  for channel in lcr:
-        #if channel[0][4:]==d[i]:
+    for channel in lcr:
+        if channel[0][4:]==d.name:
           icon = getImage(id, '7') 
           addItem(channel[0], "archchannel", True, channel[1], "", icon)
-          #break 
+          break 
   xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
 
@@ -409,8 +430,7 @@ try:
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
  elif mode == "archprograms":
-    print id
-    print date
+    
     lc = archive.GetPVREPG(Username, Password, id, date)
     for prog in lc.Request():
         icon = getImage(prog[1], '4')
@@ -418,34 +438,38 @@ try:
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
  elif mode == "archplay":
-    if False:
-        # this is not working properly, no idea how to figure out
-        # the multiple stream URLs: multiple programs in the same day
-        # seem to result in the same list of streams returned by the server
-        lc = archive.GetPvrPlaylist(Username, Password, id)
-        streamUrl = lc.Request()
-        print "Playing: " + streamUrl
-        streamUrl = streamUrl.replace('&amp;','&')
-        liz = xbmcgui.ListItem(name, iconImage=icon)
-        liz.setInfo(type="Video", infoLabels={ "Title": name[6:] + ". " + description })
-        if True or streamUrl.startswith('http://'):
-            ap = asx.Parser()
-            pl = xbmc.PlayList(1)
-            pl.clear()
-            for stream in ap.parseString(streamUrl):
-                print "Queueing " + stream
-                pl.add(stream, liz)
-            xbmc.Player().play(pl, liz)
-        else:
-            xbmc.Player().play(streamUrl, liz)
-    else:
-        lc = archive.GetArchStream(Username, Password, id)
-        streamUrl = lc.Request()
-        streamUrl = streamUrl.replace('&amp;','&')
-        print "Playing: " + streamUrl
-        liz = xbmcgui.ListItem(name, iconImage=icon)
-        liz.setInfo(type="Video", infoLabels={ "Title": name[6:] })
-        xbmc.Player().play(streamUrl, liz)    
+    video = MediaService.GetArcStreamUri(SessionID(), id)
+    soup = BeautifulSoup(video)
+    starttime = []
+    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    pl.clear()
+    #liz = xbmcgui.ListItem(name, iconImage=icon)
+    #liz.setInfo(type="Video", infoLabels={ "Title": name[6:] + ". " + description })    
+    for entry in soup('entry'):
+        sup = BeautifulSoup(entry.prettify())
+        starttime.append(sup.find('starttime').attrs[0][1])
+        pl.add(sup.find('ref').attrs[0][1])
+        
+    start = []
+    start = starttime[0].split(':')
+    seconds = 0
+    if len(start) == 3:
+        seconds = int(start[2]) + (int(start[1])*60) + (int(start[0])*3600)
+    elif len(start) == 2:
+        seconds = int(start[1]) + (int(start[0])*60)
+    #print seconds
+    #liz = xbmcgui.ListItem(name, iconImage=icon)
+    #liz.setInfo(type="Video", infoLabels={ "Title": name[6:] + ". " + description })
+    xbmc.Player().play(pl)
+    xbmc.Player().seekTime(seconds)
+    #thread.start_new_thread(loop,(seconds))                 
+        
+         
+    
+    
+    
+
+           
 
 
  elif mode == "Search":
@@ -615,7 +639,7 @@ try:
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
  elif mode == "radioplay":
-    print "Playing: " + stream
+    
     if icon == "" or icon == None:
         icon = "DefaultAudio.png"
     liz = xbmcgui.ListItem(name, iconImage = icon)
