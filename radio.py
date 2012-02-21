@@ -1,4 +1,3 @@
-
 #
 # <BestRussianTV plugin for XBMC>
 # Copyright (C) <2011>  <BestRussianTV>
